@@ -3,7 +3,6 @@ use std::path::Path;
 use anyhow::{anyhow, Context, Result};
 use clap::Parser;
 use notify::event::{AccessKind, AccessMode};
-use notify::RecursiveMode::NonRecursive;
 use notify::{recommended_watcher, EventKind, Watcher};
 use regex::Regex;
 use serde_derive::Deserialize;
@@ -45,7 +44,7 @@ fn main() -> Result<()> {
   // Configure the file watcher
   let (tx, rx) = std::sync::mpsc::channel();
   let mut watcher = recommended_watcher(tx)?;
-  watcher.watch(Path::new(&args.colors_path), NonRecursive)?;
+  watcher.watch(Path::new(&args.colors_path), notify::RecursiveMode::NonRecursive)?;
 
   // Read from the watcher
   for res in rx {
@@ -65,8 +64,7 @@ fn main() -> Result<()> {
 
 /// Read colors from a TOML file and validate them.
 fn read_colors(path: &str) -> Result<Colors> {
-  let content =
-    std::fs::read_to_string(path).context(format!("Failed to read colors TOML file: {}", &path))?;
+  let content = std::fs::read_to_string(path).context(format!("Failed to read colors TOML file: {}", &path))?;
   let colors = toml::from_str(&content).context("Failed to parse colors TOML file")?;
   validate_hex_colors(&colors)?;
 
