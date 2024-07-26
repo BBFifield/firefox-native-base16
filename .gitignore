@@ -1,0 +1,6 @@
+# Build output
+target/
+
+# Example colors file
+colors.toml
+
