@@ -1,4 +1,10 @@
+use std::path::Path;
+
+use anyhow::{Context, Result};
 use clap::Parser;
+use notify::event::{AccessKind, AccessMode};
+use notify::RecursiveMode::NonRecursive;
+use notify::{recommended_watcher, EventKind, Watcher};
 use serde_derive::Deserialize;
 
 /// Simple native program to watch and send base16 color schemes to browsers
@@ -32,19 +38,33 @@ struct Colors {
   base0F: String,
 }
 
-fn main() {
+fn main() -> Result<()> {
   let args = Args::parse();
 
-  println!("Watching file {}", args.colors_path);
+  // Configure the file watcher
+  let (tx, rx) = std::sync::mpsc::channel();
+  let mut watcher = recommended_watcher(tx)?;
+  watcher.watch(Path::new(&args.colors_path), NonRecursive)?;
 
-  println!("{:?}", read_colors(&args.colors_path));
+  // Read from the watcher
+  for res in rx {
+    match res {
+      Ok(event) => match event.kind {
+        EventKind::Access(AccessKind::Close(AccessMode::Write)) => {
+          // Debug
+          println!("{:?}", read_colors(&args.colors_path))
+        }
+        _ => continue,
+      },
+      Err(e) => eprintln!("watch error: {:?}", e),
+    }
+  }
+  Ok(())
 }
 
 /// Read colors from a TOML file.
-/// Panics on error.
-fn read_colors(path: &str) -> Colors {
+fn read_colors(path: &str) -> Result<Colors> {
   let content =
-    std::fs::read_to_string(path).expect(format!("Could not read file {}", path).as_str());
-  let colors: Colors = toml::from_str(&content).expect("Could not parse colors file");
-  colors
+    std::fs::read_to_string(path).context(format!("Failed to read colors TOML file: {}", &path))?;
+  toml::from_str(&content).context("Failed to parse colors TOML file")
 }
