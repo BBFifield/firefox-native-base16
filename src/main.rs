@@ -1,3 +1,4 @@
+use std::io::Write;
 use std::path::Path;
 
 use anyhow::{anyhow, Context, Result};
@@ -5,7 +6,7 @@ use clap::Parser;
 use notify::event::{AccessKind, AccessMode};
 use notify::{recommended_watcher, EventKind, Watcher};
 use regex::Regex;
-use serde_derive::Deserialize;
+use serde_derive::{Deserialize, Serialize};
 
 /// Simple native program to watch and send base16 color schemes to browsers
 #[derive(Parser, Debug)]
@@ -18,7 +19,7 @@ struct Args {
 
 /// Base16 color scheme
 #[allow(non_snake_case)]
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 struct Colors {
   base00: String,
   base01: String,
@@ -46,29 +47,20 @@ fn main() -> Result<()> {
   let mut watcher = recommended_watcher(tx)?;
   watcher.watch(Path::new(&args.colors_path), notify::RecursiveMode::NonRecursive)?;
 
+  // Send the colors immediately
+  send_colors(&args.colors_path);
+
   // Read from the watcher
   for res in rx {
     match res {
       Ok(event) => match event.kind {
-        EventKind::Access(AccessKind::Close(AccessMode::Write)) => {
-          // Debug
-          println!("{:?}", read_colors(&args.colors_path))
-        }
+        EventKind::Access(AccessKind::Close(AccessMode::Write)) => send_colors(&args.colors_path),
         _ => continue,
       },
-      Err(e) => eprintln!("watch error: {:?}", e),
+      Err(e) => eprintln!("Watch error: {:?}", e),
     }
   }
   Ok(())
-}
-
-/// Read colors from a TOML file and validate them.
-fn read_colors(path: &str) -> Result<Colors> {
-  let content = std::fs::read_to_string(path).context(format!("Failed to read colors TOML file: {}", &path))?;
-  let colors = toml::from_str(&content).context("Failed to parse colors TOML file")?;
-  validate_hex_colors(&colors)?;
-
-  Ok(colors)
 }
 
 /// Check that all colors are valid hex colors
@@ -101,4 +93,35 @@ fn validate_hex_colors(colors: &Colors) -> Result<()> {
   }
 
   Ok(())
+}
+
+/// Read colors from a file and send them to stdout.
+/// Returns a Result.
+fn try_send_colors(path: &str) -> Result<()> {
+  // Read colors and validate them
+  let content = std::fs::read_to_string(path).context(format!("Failed to read colors TOML file: {}", &path))?;
+  let colors = toml::from_str(&content).context("Failed to parse colors TOML file")?;
+  validate_hex_colors(&colors)?;
+
+  // Write the colors to stdout
+  let stdout = std::io::stdout();
+  let mut writer = stdout.lock();
+
+  let message_bytes = serde_json::to_vec(&colors)?;
+  let length = message_bytes.len() as u32;
+
+  writer.write_all(&length.to_be_bytes())?;
+  writer.write_all(&message_bytes)?;
+  writer.flush()?;
+
+  Ok(())
+}
+
+/// Read colors from a file and send them to stdout.
+/// Prints an error message to stderr if an error occurs.
+fn send_colors(path: &str) {
+  match try_send_colors(path) {
+    Ok(_) => (),
+    Err(e) => eprintln!("Error: {}", e),
+  }
 }
