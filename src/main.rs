@@ -107,11 +107,12 @@ fn try_send_colors(path: &str) -> Result<()> {
   let stdout = std::io::stdout();
   let mut writer = stdout.lock();
 
-  let message_bytes = serde_json::to_vec(&colors)?;
-  let length = message_bytes.len() as u32;
+  let message = serde_json::to_string(&colors)?;
+  let length = message.len() as u32;
+  let length_bytes = length.to_ne_bytes();
 
-  writer.write_all(&length.to_be_bytes())?;
-  writer.write_all(&message_bytes)?;
+  writer.write_all(&length_bytes)?;
+  writer.write_all(&message.as_bytes())?;
   writer.flush()?;
 
   Ok(())
