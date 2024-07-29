@@ -2,6 +2,11 @@
 name = "firefox-native-base16"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+description = "A simple native application to dynamically change your browser theme using base16."
+repository = "https://github.com/GnRlLeclerc/firefox-native-base16"
+readme = "README.md"
+keywords = ["firefox", "browser", "theme", "base16", "native", "messaging"]
 
 [dependencies]
 anyhow = "1.0.86"
