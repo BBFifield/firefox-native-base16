@@ -41,20 +41,21 @@ struct Colors {
 
 fn main() -> Result<()> {
   let args = Args::parse();
+  let colors_path = shellexpand::full(&args.colors_path).unwrap().to_string();
 
   // Configure the file watcher
   let (tx, rx) = std::sync::mpsc::channel();
   let mut watcher = recommended_watcher(tx)?;
-  watcher.watch(Path::new(&args.colors_path), notify::RecursiveMode::NonRecursive)?;
+  watcher.watch(Path::new(&colors_path), notify::RecursiveMode::NonRecursive)?;
 
   // Send the colors immediately
-  send_colors(&args.colors_path);
+  send_colors(&colors_path);
 
   // Read from the watcher
   for res in rx {
     match res {
       Ok(event) => match event.kind {
-        EventKind::Access(AccessKind::Close(AccessMode::Write)) => send_colors(&args.colors_path),
+        EventKind::Access(AccessKind::Close(AccessMode::Write)) => send_colors(&colors_path),
         _ => continue,
       },
       Err(e) => eprintln!("Watch error: {:?}", e),
