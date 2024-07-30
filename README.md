@@ -20,34 +20,23 @@ In order for the browser to indentify the native application, it needs a `manife
 
 NOTE: instructions for Linux / MacOS only. See [here](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Native_manifests#manifest_location) for more information on where to put the app manifest.
 
-#### Default installation
+The binary application must be launched from a bash script.
+The binary application can be run with the `--colors-path` flag to specify a different path to the file holding the colors.
+The default is `~/.mozilla/colors.toml`.
 
-By default, the binary application looks for a `colors.toml` file in the mozilla `~/.mozilla` folder.
-If this is fine for you, you can specify the **full** path to your binary in the `manifest.json` file.
-
-```bash
-mkdir ~/.mozilla/native-messaging-hosts
-jq ".path = \"$HOME/.cargo/bin/firefox-native-base16\"" manifest.json > ~/.mozilla/native-messaging-hosts/firefox_native_base16.json
-```
-
-#### Custom installation
-
-You might want to watch a different file instead. The binary application can be run with the `--colors-path` flag to specify a different path.
-However, browsers can only run scripts, not commands, so you will have to create an auxiliary script like so:
-
-`~/.local/bin/custom-firefox-native-base16`
+`~/.local/bin/firefox-native-base16-launcher`
 
 ```bash
 #!/bin/bash
 
-firefox-native-base16 --colors-path /custom/path/colors.toml
+~/.cargo/bin/firefox-native-base16 --colors-path /custom/path/colors.toml
 ```
 
 Move this script in a directory present in your `PATH` (like `~/.local/bin`), and indicate this path instead in your native application manifest.
 
 ```bash
 mkdir ~/.mozilla/native-messaging-hosts
-jq ".path = \"$HOME/.local/bin/custom-firefox-native-base16\"" manifest.json > ~/.mozilla/native-messaging-hosts/firefox_native_base16.json
+jq ".path = \"$HOME/.local/bin/firefox-native-base16-launcher\"" manifest.json > ~/.mozilla/native-messaging-hosts/firefox_native_base16.json
 ```
 
 ## Related Extensions

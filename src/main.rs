@@ -113,7 +113,7 @@ fn try_send_colors(path: &str) -> Result<()> {
   let length_bytes = length.to_ne_bytes();
 
   writer.write_all(&length_bytes)?;
-  writer.write_all(&message.as_bytes())?;
+  writer.write_all(message.as_bytes())?;
   writer.flush()?;
 
   Ok(())

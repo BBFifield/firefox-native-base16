@@ -3,7 +3,5 @@
   "description": "Native messaging application to dynamically communicate base16 colorschemes to Firefox",
   "type": "stdio",
   "path": "/home/thibaut/.cargo/bin/firefox-native-base16",
-  "allowed_extensions": [
-    "dynamic_base16@gnrl_leclerc.org"
-  ]
+  "allowed_extensions": ["dynamic_base16@gnrl_leclerc.org"]
 }
