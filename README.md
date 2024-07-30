@@ -4,6 +4,8 @@ A simple native application that can watch any base16 TOML color file for change
 
 ## Installation
 
+For a quick installation on Linux, you can just run the [`install.sh`](./install.sh) script. Else, follow the instructions.
+
 ### Building the binary
 
 You must first build and install the native application, which requires `cargo` or `rustup` to be installed:
@@ -46,9 +48,5 @@ Once your native application is setup, install the relevant browser extension.
 ### Firefox
 
 See the [Firefox Base16 Extension](https://github.com/GnRlLeclerc/firefox-dynamic-base16).
-
-### Chrome
-
-Coming soon.
 
 You can now update your `colors.toml` based on the [mustache template](./template.mustache) and watch your browser theme change dynamically!
