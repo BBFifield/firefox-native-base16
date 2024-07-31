@@ -25,13 +25,20 @@ NOTE: instructions for Linux / MacOS only. See [here](https://developer.mozilla.
 The binary application must be launched from a bash script.
 The binary application can be run with the `--colors-path` flag to specify a different path to the file holding the colors.
 The default is `~/.mozilla/colors.toml`.
+Note that on Unix platforms, Firefox sends a `SIGTERM` signal to native applications when exiting. We need to explicitely transfer it to our underlying binary in the bash script in order to ensure that it is stopped when firefox exits.
 
 `~/.local/bin/firefox-native-base16-launcher`
 
 ```bash
 #!/bin/bash
 
-~/.cargo/bin/firefox-native-base16 --colors-path /custom/path/colors.toml
+# Kill the binary when SIGTERM is received
+trap 'kill -SIGTERM $native_pid' SIGTERM
+
+# Run the binary in the background, storing its PID
+~/.cargo/bin/firefox-native-base16 &
+native_pid=$!
+wait $native_pid
 ```
 
 Move this script in a directory present in your `PATH` (like `~/.local/bin`), and indicate this path instead in your native application manifest.

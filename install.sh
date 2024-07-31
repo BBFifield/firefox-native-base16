@@ -8,7 +8,10 @@ cargo install --git https://github.com/GnRlLeclerc/firefox-native-base16
 cat >~/.local/bin/firefox-native-base16-launcher <<'EOF'
 #!/bin/bash
 
-~/.cargo/bin/firefox-native-base16  # Called with default arguments
+trap 'kill -SIGTERM $native_pid' SIGTERM
+~/.cargo/bin/firefox-native-base16 &
+native_pid=$!
+wait $native_pid
 EOF
 
 # Make the launcher script executable
