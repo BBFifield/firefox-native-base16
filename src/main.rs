@@ -3,8 +3,7 @@ use std::path::Path;
 
 use anyhow::{anyhow, Context, Result};
 use clap::Parser;
-use notify::event::{AccessKind, AccessMode};
-use notify::{recommended_watcher, EventKind, Watcher};
+use notify::{recommended_watcher, EventKind, RecursiveMode, Watcher};
 use regex::Regex;
 use serde_derive::{Deserialize, Serialize};
 
@@ -40,31 +39,36 @@ struct Colors {
 }
 
 fn main() -> Result<()> {
-    let args = Args::parse();
-    let colors_path = shellexpand::full(&args.colors_path).unwrap().to_string();
+  let args = Args::parse();
+  let colors_path = Path::new(shellexpand::full(&args.colors_path).unwrap().to_string().as_str()).to_path_buf();
+  let colors_dir = colors_path.parent().unwrap();
 
-    // Configure the file watcher
-    let (tx, rx) = std::sync::mpsc::channel();
-    let mut watcher = recommended_watcher(tx)?;
-    watcher.watch(Path::new(&colors_path), notify::RecursiveMode::NonRecursive)?;
+  // Configure the file watcher
+  let (tx, rx) = std::sync::mpsc::channel();
+  let mut watcher = recommended_watcher(tx)?;
+  watcher.watch(colors_dir, RecursiveMode::NonRecursive)?;
 
-    // Send the colors immediately
-    send_colors(&colors_path);
+  // Send the colors immediately
+  send_colors(colors_path.to_str().unwrap());
 
-    // Read from the watcher
-    for res in rx {
-        match res {
-            Ok(event) => {
-                if let EventKind::Modify(_) = event.kind {
-                    send_colors(&colors_path);
-                }
+  // Read from the watcher
+  for res in rx {
+    match res {
+      Ok(event) => {
+        if event.paths.contains(&colors_path) {
+          match event.kind {
+            EventKind::Modify(_) | EventKind::Create(_) => {
+              send_colors(colors_path.to_str().unwrap());
             }
-            Err(e) => eprintln!("Watch error: {:?}", e),
+            _ => continue,
+          }
         }
+      }
+      Err(e) => eprintln!("Watch error: {:?}", e),
     }
-    Ok(())
+  }
+  Ok(())
 }
-
 
 /// Check that all colors are valid hex colors
 fn validate_hex_colors(colors: &Colors) -> Result<()> {
@@ -103,7 +107,7 @@ fn validate_hex_colors(colors: &Colors) -> Result<()> {
 fn try_send_colors(path: &str) -> Result<()> {
   // Read colors and validate them
   let content = std::fs::read_to_string(path).context(format!("Failed to read colors TOML file: {}", &path))?;
-  let colors = toml::from_str(&content).context("Failed to parse colors TOML file")?;
+  let colors: Colors = toml::from_str(&content).context("Failed to parse colors TOML file")?;
   validate_hex_colors(&colors)?;
 
   // Write the colors to stdout
